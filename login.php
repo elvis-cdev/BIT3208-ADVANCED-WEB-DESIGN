@@ -1,0 +1,131 @@
+<?php
+session_start();
+if(isset($_SESSION['user_id'])){
+  header($_SESSION['role']==='admin' ? "Location: dashboard.php" : "Location: student_dashboard.php");
+  exit;
+}
+require 'db.php';
+$error = "";
+if($_SERVER['REQUEST_METHOD']==='POST'){
+  $username = $_POST['username'];
+  $password = $_POST['password'];
+  $stmt = $conn->prepare("SELECT * FROM users WHERE username=?");
+  $stmt->execute([$username]);
+  $user = $stmt->fetch(PDO::FETCH_ASSOC);
+  if($user && password_verify($password, $user['password'])){
+    $_SESSION['user_id']  = $user['id'];
+    $_SESSION['username'] = $user['username'];
+    $_SESSION['role']     = $user['role'];
+    header($user['role']==='admin' ? "Location: dashboard.php" : "Location: student_dashboard.php");
+    exit;
+  } else { $error = "Invalid username or password."; }
+}
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Login - SchoolMS</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--primary:#4f6ef7;--violet:#7c5bf5;--rose:#f56b7c;--teal:#34c9a0;--text:#1a1d2e;--sub:#6b7199;--border:#e4e7f2;--g1:linear-gradient(135deg,#4f6ef7,#7c5bf5);}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Outfit',sans-serif;background:url('school.jpeg') no-repeat center center;background-size:cover;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+.card{background:rgba(255,255,255,.95);backdrop-filter:blur(12px);border-radius:20px;padding:36px 32px;width:100%;max-width:390px;box-shadow:0 20px 60px rgba(0,0,0,.15);}
+.logo{text-align:center;margin-bottom:22px;}
+.logo-mark{width:52px;height:52px;background:var(--g1);border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;}
+.logo-mark svg{width:26px;height:26px;fill:white;}
+.logo h2{font-family:'Plus Jakarta Sans',sans-serif;font-size:18px;font-weight:800;color:var(--text);}
+.logo p{font-size:13px;color:var(--sub);margin-top:3px;}
+.alert-err{background:#fff0f2;color:#A32D2D;border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:14px;border-left:3px solid var(--rose);}
+.fg{margin-bottom:14px;}
+.fg label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--sub);margin-bottom:6px;}
+.fg input{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:10px;font-family:'Outfit',sans-serif;font-size:14px;color:var(--text);outline:none;transition:.18s;background:white;}
+.fg input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,110,247,.12);}
+.ferr{font-size:11px;color:var(--rose);margin-top:4px;display:none;}
+.bar-wrap{height:4px;background:#eee;border-radius:2px;margin-top:6px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:2px;transition:width .3s,background .3s;width:0%;}
+.str-lbl{font-size:11px;color:var(--sub);margin-top:3px;}
+.btn{width:100%;background:var(--g1);color:white;border:none;border-radius:10px;padding:12px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:14px;cursor:pointer;margin-top:8px;transition:.18s;}
+.btn:hover{opacity:.88;transform:translateY(-1px);}
+.foot{text-align:center;margin-top:16px;font-size:13px;color:var(--sub);}
+.foot a{color:var(--primary);font-weight:600;text-decoration:none;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <div class="logo-mark"><svg viewBox="0 0 24 24"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3z"/><path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/></svg></div>
+    <h2>School Management System</h2>
+    <p>Sign in to your account</p>
+  </div>
+  <?php if($error): ?><div class="alert-err"><?= htmlspecialchars($error) ?></div><?php endif; ?>
+  <form id="loginForm" method="POST" onsubmit="return validateLogin()">
+    <div class="fg">
+      <label>Username</label>
+      <input type="text" id="username" name="username" placeholder="Enter username" required autofocus>
+      <div class="ferr" id="err-user">Username cannot be empty.</div>
+    </div>
+    <div class="fg">
+      <label>Password</label>
+      <input type="password" id="password" name="password" placeholder="Enter password" oninput="checkStrength()" required>
+      <div class="bar-wrap"><div class="bar-fill" id="str-bar"></div></div>
+      <div class="str-lbl" id="str-lbl"></div>
+      <div class="ferr" id="err-pass">Password must be at least 6 characters.</div>
+    </div>
+    <button type="submit" class="btn">Sign In</button>
+  </form>
+  <div class="foot">No account? <a href="register.php">Register here</a></div>
+</div>
+<script>
+function validateLogin(){
+  var u=document.getElementById('username').value.trim();
+  var p=document.getElementById('password').value;
+  document.getElementById('err-user').style.display=!u?'block':'none';
+  document.getElementById('err-pass').style.display=p.length<6?'block':'none';
+  if(!u||p.length<6){showPopup('Please fix the errors before signing in.');return false;}
+  return true;
+}
+function checkStrength(){
+  var p=document.getElementById('password').value;
+  var bar=document.getElementById('str-bar'),lbl=document.getElementById('str-lbl');
+  if(!p){bar.style.width='0%';lbl.textContent='';return;}
+  var s=0;
+  if(p.length>=6)s++;if(p.length>=10)s++;if(/[A-Z]/.test(p))s++;if(/[0-9]/.test(p))s++;if(/[^A-Za-z0-9]/.test(p))s++;
+  var lvl=[{w:'20%',c:'#E24B4A',t:'Weak'},{w:'40%',c:'#f5a623',t:'Fair'},{w:'65%',c:'#4f6ef7',t:'Good'},{w:'85%',c:'#34c9a0',t:'Strong'},{w:'100%',c:'#1d9e75',t:'Very strong'}];
+  var l=lvl[Math.min(s,lvl.length)-1];
+  bar.style.width=l.w;bar.style.background=l.c;lbl.textContent=l.t;lbl.style.color=l.c;
+}
+
+function showPopup(message, type){
+  type = type || 'error';
+  var existing = document.getElementById('custom-popup');
+  if(existing) existing.remove();
+  var colors = {
+    error:   {border:'#f56b7c', icon:'&#10060;', title:'Error'},
+    success: {border:'#34c9a0', icon:'&#10004;', title:'Success'},
+    warning: {border:'#f5a623', icon:'&#9888;',  title:'Warning'},
+  };
+  var c = colors[type] || colors.error;
+  var overlay = document.createElement('div');
+  overlay.id = 'custom-popup';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.35);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  overlay.innerHTML = '<div style="background:white;border-radius:16px;padding:28px 32px;max-width:380px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.18);border-top:4px solid '+c.border+';text-align:center;animation:popIn .25s ease;">'
+    +'<div style="font-size:38px;margin-bottom:12px;">'+c.icon+'</div>'
+    +'<div style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:16px;font-weight:700;color:#1a1d2e;margin-bottom:8px;">'+c.title+'</div>'
+    +'<div style="font-size:14px;color:#6b7199;line-height:1.6;margin-bottom:20px;">'+message+'</div>'
+    +'<button onclick="document.getElementById(\'custom-popup\').remove()" style="background:linear-gradient(135deg,#4f6ef7,#7c5bf5);color:white;border:none;border-radius:10px;padding:10px 28px;font-size:14px;font-weight:600;cursor:pointer;">OK</button>'
+    +'</div>';
+  overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+  if(!document.getElementById('popup-styles')){
+    var s=document.createElement('style');s.id='popup-styles';
+    s.textContent='@keyframes popIn{from{opacity:0;transform:scale(.85) translateY(-20px)}to{opacity:1;transform:scale(1) translateY(0)}}';
+    document.head.appendChild(s);
+  }
+}
+
+</script>
+</body>
+</html>
