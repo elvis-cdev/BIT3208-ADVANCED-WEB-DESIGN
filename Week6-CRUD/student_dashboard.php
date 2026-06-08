@@ -413,5 +413,13 @@ function showTab(tab){
   document.getElementById('nav-'+tab).classList.add('active');
 }
 </script>
+
+<?php if(!empty($_SESSION['just_logged_in'])): $_SESSION['just_logged_in']=false; ?>
+<script>
+window.addEventListener('DOMContentLoaded', function(){
+  showPopup('Welcome back, <strong><?= htmlspecialchars($_SESSION["username"]) ?></strong>! Logged in as <strong><?= ucfirst($_SESSION["role"]) ?></strong>.', 'success');
+});
+</script>
+<?php endif; ?>
 </body>
 </html>

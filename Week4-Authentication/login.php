@@ -16,6 +16,8 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     $_SESSION['user_id']  = $user['id'];
     $_SESSION['username'] = $user['username'];
     $_SESSION['role']     = $user['role'];
+    $_SESSION['just_logged_in'] = true;
+    $_SESSION['just_logged_in'] = true;
     header($user['role']==='admin' ? "Location: dashboard.php" : "Location: student_dashboard.php");
     exit;
   } else { $error = "Invalid username or password."; }
